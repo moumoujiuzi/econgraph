@@ -5,7 +5,7 @@
 输入 `x的平方加sinx的立方`，它认识：
 `y = x² + sin(x)³`。
 
-<img src="docs/v7-fullscreen.png" width="820" alt="主界面">
+<img src="docs/hero.png" width="820" alt="主界面">
 
 ---
 
@@ -178,4 +178,5 @@ npm test
 
 - 灵感来自曼昆《宏观经济学》里的那些图，以及各种"画不出图"的数学课
 - 用到的技术：Canvas 2D、Electron、.NET Framework
+
 
