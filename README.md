@@ -1,6 +1,8 @@
 ﻿# 小肥鱼的函数小屋 · EconGraph
 
 > 一个面向高中生和大学生的**简陋**函数绘图中文软件 —— 但支持**用中文描述函数**。
+> 如果可以，十分欢迎且恳求每一位喜欢数学，喜欢经济学，金融学，深深喜爱函数变换过程，或者是有相应的教学需求的用户多多参与，加入到改进，完善这一bug频出，十分简陋的函数小屋中！
+> 以下是它的特点讲解！
 
 [![在线试用](https://img.shields.io/badge/%E5%9C%A8%E7%BA%BF%E8%AF%95%E7%94%A8-%E7%82%B9%E6%88%91-1f4e79)](https://moumoujiuzi.github.io/econgraph/) [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE) [![Release](https://img.shields.io/github/v/release/moumoujiuzi/econgraph)](../../releases)
 
@@ -174,7 +176,7 @@ npm test
 
 [MIT](LICENSE) —— 随便用、随便改，注明出处即可。
 
-图标是小肥鱼（作者自绘），随项目一起以 MIT 发布。
+图标是小肥鱼（网图，侵权则删）
 
 ## 致谢
 
