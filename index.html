@@ -1,0 +1,421 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EconGraph · 经济学函数绘图台</title>
+<link rel="icon" href="assets/icon.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="cmd-icon">⌘</div>
+  <div class="cmd-wrap">
+    <input id="cmdInput" type="text" spellcheck="false" autocomplete="off"
+           placeholder="输入函数 / 算式 / 命令，回车执行 —— 例如 sin(x)">
+    <span id="cmdHint" class="cmd-hint"></span>
+  </div>
+  <button id="cmdRun" class="btn-tool primary">绘制</button>
+  <button id="cmdHelp" class="btn-tool">?</button>
+</header>
+<div id="exprBar" class="expr-bar hidden"><span class="expr-label">表达式</span><span id="exprText"></span></div>
+
+<div class="app">
+
+  <aside class="sidebar">
+    <header class="brand">
+      <img class="logo-img" src="assets/icon.png" alt="EconGraph">
+      <div>
+        <h1>EconGraph</h1>
+        <p>经济学函数绘图台 · 离线版</p>
+      </div>
+    </header>
+
+    <section class="panel">
+      <label class="panel-label" for="presetSelect">图形模板</label>
+      <select id="presetSelect" class="select"></select>
+      <p id="presetNote" class="note"></p>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>曲线</h2>
+        <button id="addCurve" class="btn-mini" title="添加一条曲线">＋ 添加</button>
+      </div>
+      <div id="curveList" class="curve-list"></div>
+      <p class="tip">支持四种类型：<b>y=f(x)</b>、隐函数 <b>F(x,y)=0</b>、参数方程 <b>(x(t),y(t))</b>、极坐标 <b>r=f(θ)</b>。</p>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>参数</h2></div>
+      <div id="paramList" class="param-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>视图范围</h2>
+        <button id="fitView" class="btn-mini" title="根据曲线自动调整纵轴">自适应</button>
+      </div>
+      <label class="axis-toggle"><input type="checkbox" id="axisEdge"> 坐标轴强制贴边（默认过原点）</label>
+      <label class="axis-toggle"><input type="checkbox" id="axisEqual"> 等比例坐标（x、y 单位长度一致）</label>
+      <div class="zoom-row">
+        <input type="range" id="zoomRange" min="10" max="400" step="5" value="100" title="拖动白点缩放">
+        <span id="zoomVal" class="zoom-val">100%</span>
+        <button id="zoomReset" class="btn-mini" title="回到 100%">复位</button>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button id="exportPng" class="btn primary">导出 PNG</button>
+      <button id="resetAll" class="btn">重置</button>
+    </div>
+    <div class="actions">
+      <button id="exportTikz" class="btn">导出 TikZ</button>
+      <button id="snapshot" class="btn">存为对照</button>
+    </div>
+  </aside>
+
+  <main class="stage">
+    <div class="stage-head">
+      <h2 id="chartTitle">—</h2>
+      <div class="stage-tools">
+        <button id="openSeries" class="btn-tool">∑ 级数工坊</button>
+        <button id="openTools" class="btn-tool">∂ 数值工具</button>
+        <button id="openLab" class="btn-tool">ƒ 数学工具</button>
+        <span class="hint">滚轮缩放 · 拖拽平移 · 悬停读数</span>
+      </div>
+    </div>
+    <div class="canvas-wrap" id="canvasWrap">
+      <canvas id="plot"></canvas>
+      <canvas id="overlay"></canvas>
+      <div id="tooltip" class="tooltip"></div>
+    </div>
+  </main>
+
+</div>
+
+<!-- ============================ 数学工具 ============================ -->
+<div id="labOverlay" class="modal-overlay hidden">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="数学工具">
+    <header class="modal-head">
+      <div class="tabs">
+        <button class="tab active" data-tab="deriv">高阶导数</button>
+        <button class="tab" data-tab="taylor">泰勒展开</button>
+        <button class="tab" data-tab="binom">二项式定理</button>
+        <button class="tab" data-tab="leibniz">莱布尼茨公式</button>
+      </div>
+      <button id="labClose" class="modal-close" title="关闭">×</button>
+    </header>
+
+    <div class="modal-body">
+      <section class="lab-panel" data-panel="deriv">
+        <p class="lab-desc">对当前曲线做 <b>n 阶符号求导</b>，结果可直接画到图上。</p>
+        <div class="lab-row">
+          <label>源函数<select id="labDerivSrc" class="select sm"></select></label>
+          <label>阶数<select id="labDerivOrder" class="select sm">
+            <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
+          </select></label>
+          <button id="labDerivRun" class="btn small primary">计算</button>
+          <button id="labDerivPlot" class="btn small">画到图上</button>
+        </div>
+        <pre id="labDerivOut" class="lab-out">—</pre>
+      </section>
+
+      <section class="lab-panel hidden" data-panel="taylor">
+        <p class="lab-desc">在 <b>x₀</b> 处展开到 n 阶：Pₙ(x) = Σ f⁽ᵏ⁾(x₀)/k! · (x−x₀)ᵏ。</p>
+        <div class="lab-row">
+          <label>源函数<select id="labTSrc" class="select sm"></select></label>
+          <label>展开点 x₀<input id="labTX0" type="number" step="any" value="0" class="num"></label>
+          <label>阶数<select id="labTN" class="select sm">
+            <option>1</option><option>2</option><option>3</option><option selected>5</option><option>6</option>
+            <option>7</option><option>8</option><option>10</option><option>12</option>
+          </select></label>
+          <button id="labTRun" class="btn small primary">展开</button>
+        </div>
+        <pre id="labTOut" class="lab-out">—</pre>
+        <div class="lab-row">
+          <button id="labTPlot" class="btn small">画泰勒多项式</button>
+          <button id="labTErr" class="btn small">画误差曲线</button>
+        </div>
+      </section>
+
+      <section class="lab-panel hidden" data-panel="binom">
+        <p class="lab-desc">(a + b)ⁿ = Σ C(n,k)·aⁿ⁻ᵏ·bᵏ，同时给出帕斯卡三角对应行。</p>
+        <div class="lab-row">
+          <label>a =<input id="labBA" type="text" value="1" class="txt"></label>
+          <label>b =<input id="labBB" type="text" value="x" class="txt"></label>
+          <label>n<select id="labBN" class="select sm">
+            <option>1</option><option>2</option><option>3</option><option>4</option><option selected>5</option>
+            <option>6</option><option>7</option><option>8</option><option>10</option><option>12</option>
+          </select></label>
+          <button id="labBRun" class="btn small primary">展开</button>
+          <button id="labBPlot" class="btn small">画展开式</button>
+        </div>
+        <pre id="labBOut" class="lab-out">—</pre>
+      </section>
+
+      <section class="lab-panel hidden" data-panel="leibniz">
+        <p class="lab-desc">莱布尼茨公式：(u·v)⁽ⁿ⁾ = Σ C(n,k)·u⁽ᵏ⁾·v⁽ⁿ⁻ᵏ⁾。</p>
+        <div class="lab-row">
+          <label>u(x) =<input id="labLU" type="text" value="x^2" class="txt"></label>
+          <label>v(x) =<input id="labLV" type="text" value="exp(x)" class="txt"></label>
+          <label>n<select id="labLN" class="select sm">
+            <option>1</option><option>2</option><option>3</option><option selected>3</option>
+            <option>4</option><option>5</option><option>6</option>
+          </select></label>
+          <button id="labLRun" class="btn small primary">展开</button>
+          <button id="labLPlot" class="btn small">画 n 阶导</button>
+        </div>
+        <pre id="labLOut" class="lab-out">—</pre>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ 数值工具 ============================ -->
+<div id="toolsOverlay" class="modal-overlay hidden">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="数值工具">
+    <header class="modal-head">
+      <div class="tabs" id="toolsTabs">
+        <button class="tab active" data-ttab="root">求根 / 交点</button>
+        <button class="tab" data-ttab="tan">切线</button>
+        <button class="tab" data-ttab="int">定积分</button>
+        <button class="tab" data-ttab="riem">黎曼和</button>
+        <button class="tab" data-ttab="iter">迭代 / 蛛网</button>
+        <button class="tab" data-ttab="data">数据拟合</button>
+      </div>
+      <button id="toolsClose" class="modal-close" title="关闭">×</button>
+    </header>
+
+    <div class="modal-body">
+      <section class="lab-panel" data-tpanel="root">
+        <p class="lab-desc">在区间内扫描变号并二分求根；选第二条曲线就是求<b>两条曲线的交点</b>。</p>
+        <div class="lab-row">
+          <label>函数 A<select id="numRootA" class="select sm"></select></label>
+          <label>函数 B<select id="numRootB" class="select sm"></select></label>
+          <label>区间 a<input id="numRootA1" type="number" step="any" class="num"></label>
+          <label>区间 b<input id="numRootB1" type="number" step="any" class="num"></label>
+          <button id="numRootRun" class="btn small primary">计算</button>
+          <button id="numRootPlot" class="btn small">标到图上</button>
+        </div>
+        <pre id="numRootOut" class="lab-out">—</pre>
+      </section>
+
+      <section class="lab-panel hidden" data-tpanel="tan">
+        <p class="lab-desc">在 x₀ 处数值求导并画出切线，用来直观解释边际量、MRS、MRTS。</p>
+        <div class="lab-row">
+          <label>函数<select id="numTanSrc" class="select sm"></select></label>
+          <label>切点 x₀<input id="numTanX" type="number" step="any" value="1" class="num"></label>
+          <button id="numTanRun" class="btn small primary">计算</button>
+          <button id="numTanPlot" class="btn small">画切线</button>
+        </div>
+        <pre id="numTanOut" class="lab-out">—</pre>
+      </section>
+
+      <section class="lab-panel hidden" data-tpanel="int">
+        <p class="lab-desc">复合辛普森积分，可把面积填到图上（消费者剩余、无谓损失都靠它）。</p>
+        <div class="lab-row">
+          <label>函数<select id="numIntSrc" class="select sm"></select></label>
+          <label>下限 a<input id="numIntA" type="number" step="any" class="num"></label>
+          <label>上限 b<input id="numIntB" type="number" step="any" class="num"></label>
+          <button id="numIntRun" class="btn small primary">计算</button>
+          <button id="numIntPlot" class="btn small">填充面积</button>
+        </div>
+        <pre id="numIntOut" class="lab-out">—</pre>
+      </section>
+
+      <section class="lab-panel hidden" data-tpanel="riem">
+        <p class="lab-desc">用左端点 / 右端点 / 中点矩形逼近积分，直观看到 n 增大时的收敛。</p>
+        <div class="lab-row">
+          <label>函数<select id="numRieSrc" class="select sm"></select></label>
+          <label>a<input id="numRieA" type="number" step="any" class="num"></label>
+          <label>b<input id="numRieB" type="number" step="any" class="num"></label>
+          <label>n<input id="numRieN" type="number" value="8" min="1" max="200" class="num"></label>
+          <label>取点<select id="numRieMode" class="select sm">
+            <option value="left">左端点</option>
+            <option value="right">右端点</option>
+            <option value="mid" selected>中点</option>
+          </select></label>
+          <button id="numRieRun" class="btn small primary">计算</button>
+          <button id="numRiePlot" class="btn small">画矩形</button>
+        </div>
+        <pre id="numRieOut" class="lab-out">—</pre>
+      </section>
+
+      <section class="lab-panel hidden" data-tpanel="iter">
+        <p class="lab-desc">一维迭代 xₜ₊₁ = f(xₜ) 的蛛网图：折线在曲线与 45° 线之间来回，收敛/发散一目了然。</p>
+        <div class="lab-row">
+          <label>f(x) =<input id="numIterF" type="text" value="2.5*x*(1-x)" class="txt wide"></label>
+          <label>初值 x₀<input id="numIterX0" type="number" step="any" value="0.2" class="num"></label>
+          <label>次数<input id="numIterN" type="number" value="12" min="1" max="200" class="num"></label>
+          <button id="numIterRun" class="btn small primary">计算</button>
+          <button id="numIterPlot" class="btn small">画蛛网</button>
+        </div>
+        <pre id="numIterOut" class="lab-out">—</pre>
+      </section>
+
+      <section class="lab-panel hidden" data-tpanel="data">
+        <p class="lab-desc">粘贴两列数据（x, y），做最小二乘拟合，画出散点与回归线。</p>
+        <div class="lab-row">
+          <label style="flex:1">数据（支持逗号/制表符/空格分隔，可含表头）
+            <textarea id="numDataText" class="data-area" rows="5">x,y
+1,2.1
+2,3.9
+3,6.2
+4,7.8
+5,10.1</textarea>
+          </label>
+        </div>
+        <div class="lab-row">
+          <button id="numDataRun" class="btn small primary">解析并拟合</button>
+          <button id="numDataPlot" class="btn small">画散点 + 回归线</button>
+        </div>
+        <pre id="numDataOut" class="lab-out">—</pre>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ 级数工坊 ============================ -->
+<div id="seriesOverlay" class="modal-overlay hidden">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="级数工坊">
+    <header class="modal-head">
+      <div class="tabs" id="seriesTabs">
+        <button class="tab active" data-stab="taylor">泰勒逐项</button>
+        <button class="tab" data-stab="series">求和 Σ</button>
+        <button class="tab" data-stab="deriv">导数逐阶</button>
+        <button class="tab" data-stab="nested">嵌套根式</button>
+      </div>
+      <button id="seriesClose" class="modal-close" title="关闭">×</button>
+    </header>
+
+    <div class="modal-body">
+      <section class="lab-panel" data-spanel="taylor">
+        <p class="lab-desc">在 <b>x₀</b> 处逐项展开：每点一次「+1 阶」就多一项，图上的红色曲线会立刻变成新的部分和。
+          阶数 <b id="tK">1</b>。<br>
+          注意：泰勒多项式只在 <b>x₀ 附近</b>贴合原函数，离得越远越离谱（阶数再高也救不回来），
+          想看吻合情况点「看展开点附近」。</p>
+        <div class="lab-row">
+          <label>源函数<input id="tSource" type="text" value="sin(x)" class="txt wide"></label>
+          <label>展开点 x₀<input id="tX0" type="number" step="any" value="0" class="num"></label>
+        </div>
+        <div class="lab-row">
+          <button id="tMinus" class="btn small">−1 阶</button>
+          <button id="tPlus" class="btn small primary">+1 阶</button>
+          <button id="tPlus5" class="btn small">+5 阶</button>
+          <button id="tReset" class="btn small">归零</button>
+          <button id="tFocus" class="btn small">看展开点附近</button>
+          <button id="tClear" class="btn small">清除叠加</button>
+        </div>
+        <pre id="tOut" class="lab-out">—</pre>
+      </section>
+
+      <section class="lab-panel hidden" data-spanel="series">
+        <p class="lab-desc">把通项写成含 <b>n</b> 的式子，N 就是加到第几项。默认的
+          <code>sin(n*x)/n</code> 累加下去会逼近锯齿波——正是无穷级数“逐渐变成另一个函数”的过程。</p>
+        <div class="sigma-row">
+          <div class="sigma-symbol">
+            <input id="sTo" class="sigma-lim" type="text" inputmode="numeric" value="1" title="求和上限（可填 ∞）">
+            <div class="sigma-glyph">Σ</div>
+            <div class="sigma-low">n =<input id="sFrom" class="sigma-lim" type="number" value="1" min="0" max="400" title="起始项"></div>
+          </div>
+          <div class="sigma-term">
+            <input id="sTerm" type="text" value="sin(n*x)/n" class="sigma-input" placeholder="填第 n 项，例如 sin(n*x)/n">
+            <div class="sigma-note">用 <b>n</b> 表示第几项；上面的数字就是“加到第几项”。不会打 Σ 也没关系，框里只写通项。</div>
+          </div>
+        </div>
+        <div class="lab-row">
+          <button id="sMinus1" class="btn small">−1 项</button>
+          <button id="sPlus1" class="btn small primary">+1 项</button>
+          <button id="sPlus10" class="btn small">+10 项</button>
+          <span class="sigma-eq">= 前 <b id="sCount">1</b> 项的和 S<sub>n</sub>(x)</span>
+          <button id="sClear" class="btn small">清空</button>
+        </div>
+        <div class="lab-row">
+          <button id="sPresetSaw" class="btn small">锯齿 Σsin(nx)/n</button>
+          <button id="sPresetSq" class="btn small">方波 Σsin((2n−1)x)/(2n−1)</button>
+          <button id="sPresetGeo" class="btn small">几何 Σxⁿ</button>
+        </div>
+        <pre id="sOut" class="lab-out">—</pre>
+      </section>
+
+      <section class="lab-panel hidden" data-spanel="deriv">
+        <p class="lab-desc">点一次「+1 阶」多画一阶导，每条导数各占一种颜色。当前阶数 <b id="dK">0</b>。</p>
+        <div class="lab-row">
+          <label>源函数<input id="dSource" type="text" value="sin(x)" class="txt wide"></label>
+        </div>
+        <div class="lab-row">
+          <button id="dMinus" class="btn small">−1 阶</button>
+          <button id="dPlus" class="btn small primary">+1 阶</button>
+          <button id="dReset" class="btn small">归零</button>
+          <button id="dClear" class="btn small">清除叠加</button>
+        </div>
+        <pre id="dOut" class="lab-out">—</pre>
+      </section>
+
+      <section class="lab-panel hidden" data-spanel="nested">
+        <p class="lab-desc">一层套一层的式子，比如 √(2+√(2+√(2+…)))。你只要写<b>每一层长什么样</b>，
+          程序从里往外套 N 层给你看，N 越大越接近真实值。</p>
+
+        <div class="nested-legend">
+          <div><b>R</b>　＝ 里面那一层算出来的结果（写模板时先当成一个整体）</div>
+          <div><b>k</b>　＝ 这是第几层（1、2、3…），只有各层系数不同时才用得上</div>
+          <div><b>N</b>　＝ 一共往外叠几层，就是右边的层数</div>
+        </div>
+
+        <div class="lab-row">
+          <label>每一层的写法（用 R 占位）<input id="nTpl" type="text" value="sqrt(2 + R)" class="txt wide"></label>
+          <label>最里面一层 R₀ =<input id="nTerm" type="text" value="0" class="num"></label>
+        </div>
+        <p class="nested-hint" id="nTplHint">√ 形式：√(2 + R)</p>
+        <p class="nested-hint">
+          <b>R₀ 是什么</b>：叠到最里面、没有更内层时 R 取的值。
+          √(2+√(2+…)) 一般填 <code>0</code>，连分数 1+1/(1+…) 一般填 <code>1</code>。
+          只要层数够多，填 0 还是 1 对结果几乎没影响，它只决定"从哪儿开始叠"。
+        </p>
+        <div class="lab-row">
+          <button id="nMinus" class="btn small">−1 层</button>
+          <button id="nPlus" class="btn small primary">+1 层</button>
+          <button id="nPlus10" class="btn small">+10 层</button>
+          <label>层数 N<input id="nN" type="number" value="1" min="1" max="80" class="num"></label>
+          <button id="nApply" class="btn small">应用</button>
+          <button id="nClear" class="btn small">清除叠加</button>
+        </div>
+
+        <div class="nested-presets">
+          <button id="nPre2" class="btn small">√(2+√(2+…)) ＝ 2</button>
+          <button id="nPreX" class="btn small">√(x+√(x+…))</button>
+          <button id="nPreGold" class="btn small">√(1+√(1+…)) ＝ 黄金比</button>
+          <button id="nPreRam" class="btn small">拉马努金 ＝ 3</button>
+          <button id="nPreFrac" class="btn small">连分数 1+1/(1+1/(…))</button>
+          <button id="nPreA" class="btn small">√(a+√(a+…)) 带参数</button>
+        </div>
+
+        <p class="nested-hint">想换成别的形状？直接改上面那一行就行，例如
+          <code>1 + 1/(1 + R)</code>、<code>sqrt(a + R)</code>、<code>sqrt(1 + k*R)</code>；
+          <code>sqrt</code> 就是 √，<code>R</code> 代表里面那层。</p>
+
+        <pre id="nOut" class="lab-out">—</pre>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<script src="js/web-shim.js"></script>
+<script src="js/normalize.js"></script>
+<script src="js/mathfn.js"></script>
+<script src="js/calculus.js"></script>
+<script src="js/numeric.js"></script>
+<script src="js/dynsys.js"></script>
+<script src="js/plot.js"></script>
+<script src="js/presets.js"></script>
+<script src="js/presets-extra.js"></script>
+<script src="js/tools.js"></script>
+<script src="js/series.js"></script>
+<script src="js/cmdbar.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
+

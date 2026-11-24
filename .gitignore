@@ -1,0 +1,13 @@
+﻿node_modules/
+dist/
+data/
+*.exe
+*.7z
+*.zip
+build/dist/
+build/node_modules/
+build/electron-*/
+*.log
+*.err
+.DS_Store
+Thumbs.db
