@@ -2,6 +2,8 @@
 
 > 一个面向高中生和大学生的**简陋**函数绘图中文软件 —— 但支持**用中文描述函数**。
 
+[![在线试用](https://img.shields.io/badge/%E5%9C%A8%E7%BA%BF%E8%AF%95%E7%94%A8-%E7%82%B9%E6%88%91-1f4e79)](https://moumoujiuzi.github.io/econgraph/) [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE) [![Release](https://img.shields.io/github/v/release/moumoujiuzi/econgraph)](../../releases)
+
 输入 `x的平方加sinx的立方`，它认识：
 `y = x² + sin(x)³`。
 
@@ -178,5 +180,6 @@ npm test
 
 - 灵感来自曼昆《宏观经济学》里的那些图，以及各种"画不出图"的数学课
 - 用到的技术：Canvas 2D、Electron、.NET Framework
+
 
 
