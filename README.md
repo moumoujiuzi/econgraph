@@ -1,4 +1,4 @@
-# 小肥鱼的函数小屋 · EconGraph
+﻿# 小肥鱼的函数小屋 · EconGraph
 
 > 一个面向高中生和大学生的**简陋**函数绘图中文软件 —— 但支持**用中文描述函数**。
 
@@ -82,13 +82,13 @@ preset(islm)                切换模板
 
 到 [Releases](../../releases) 下载：
 
-- `EconGraph-网页版.html` —— **单个 HTML 文件**，双击用浏览器打开，零安装
-- `EconGraph-便携版.zip` —— 解压后双击 `EconGraph.exe`，独立窗口，完全离线
+- `EconGraph-web.html` —— **单个 HTML 文件**，双击用浏览器打开，零安装
+- `EconGraph-portable.zip` —— 解压后双击 `EconGraph.exe`，独立窗口，完全离线
 
 ### 方式二：从源码运行
 
 ```bash
-git clone https://github.com/<你的用户名>/econgraph.git
+git clone https://github.com/moumoujiuzi/econgraph.git
 cd econgraph
 ```
 
@@ -178,3 +178,4 @@ npm test
 
 - 灵感来自曼昆《宏观经济学》里的那些图，以及各种"画不出图"的数学课
 - 用到的技术：Canvas 2D、Electron、.NET Framework
+

@@ -10,8 +10,9 @@
   },
   "keywords": ["math", "plot", "economics", "chinese", "canvas", "education"],
   "license": "MIT",
-  "repository": { "type": "git", "url": "https://github.com/<your-name>/econgraph.git" },
+  "repository": { "type": "git", "url": "https://github.com/moumoujiuzi/econgraph.git" },
   "devDependencies": {
     "electron": "^28.3.3"
   }
 }
+
